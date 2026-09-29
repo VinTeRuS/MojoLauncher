@@ -52,16 +52,37 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
 
     private final SearchFilters mSearchFilters;
 
-    public SearchModFragment(){
+    public SearchModFragment() {
         super(R.layout.fragment_mod_search);
         mSearchFilters = new SearchFilters();
-        mSearchFilters.isModpack = true;
+        mSearchFilters.isModpack = false;
     }
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        modpackApi = new CommonApi(context.getString(R.string.curseforge_api_key));
+        modpackApi = new net.kdt.pojavlaunch.modloaders.modpacks.api.CommonApi(context.getString(R.string.curseforge_api_key));
+
+        // Inject strict version + modloader filters from current instance
+        net.kdt.pojavlaunch.instances.Instance instance = net.kdt.pojavlaunch.instances.Instances.loadSelectedInstance();
+        if (instance != null && instance.versionId != null) {
+            String vId = instance.versionId;
+
+            // Extract modloader name: fabric, forge, quilt, neoforge
+            String vLow = vId.toLowerCase(java.util.Locale.ROOT);
+            if (vLow.contains("fabric"))        mSearchFilters.modloader = "fabric";
+            else if (vLow.contains("neoforge")) mSearchFilters.modloader = "neoforge";
+            else if (vLow.contains("forge"))    mSearchFilters.modloader = "forge";
+            else if (vLow.contains("quilt"))    mSearchFilters.modloader = "quilt";
+
+            // Extract MC version: always starts with 1, e.g. 1.21.4, 1.16.5, 1.7.10
+            // This avoids matching loader versions like 0.16.9 or 47.1.0
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("(?<![\\d.])(1\\.\\d+(?:\\.\\d+)?)(?![\\d.])").matcher(vId);
+            if (m.find()) {
+                mSearchFilters.mcVersion = m.group(1);
+            }
+        }
     }
 
     @Override
@@ -91,12 +112,12 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
             return false;
         });
 
-        mOverlay.post(()->{
-           int overlayHeight = mOverlay.getHeight();
-           mRecyclerview.setPadding(mRecyclerview.getPaddingLeft(),
-                   mRecyclerview.getPaddingTop() + overlayHeight,
-                   mRecyclerview.getPaddingRight(),
-                   mRecyclerview.getPaddingBottom());
+        mOverlay.post(() -> {
+            int overlayHeight = mOverlay.getHeight();
+            mRecyclerview.setPadding(mRecyclerview.getPaddingLeft(),
+                    mRecyclerview.getPaddingTop() + overlayHeight,
+                    mRecyclerview.getPaddingRight(),
+                    mRecyclerview.getPaddingBottom());
         });
         mFilterButton.setOnClickListener(v -> displayFilterDialog());
 
@@ -154,7 +175,8 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
             assert mApplyButton != null;
 
             // Setup the expendable list behavior
-            mSelectVersionButton.setOnClickListener(v -> VersionSelectorDialog.open(v.getContext(), true, (id, snapshot)-> mSelectedVersion.setText(id)));
+            mSelectVersionButton.setOnClickListener(v -> VersionSelectorDialog.open(v.getContext(), true,
+                    (id, snapshot) -> mSelectedVersion.setText(id)));
 
             // Apply visually all the current settings
             mSelectedVersion.setText(mSearchFilters.mcVersion);
@@ -166,7 +188,6 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
                 dialogInterface.dismiss();
             });
         });
-
 
         dialog.show();
     }

@@ -157,7 +157,17 @@
 
     <string name="main_share_logs">Share log file</string>
     <string name="main_install_jar_file">Execute a .jar</string>
+    <string name="main_install_modpack">Install Modpack (.mrpack/zip)</string>
     <string name="main_play">Play</string>
+
+    <string name="menu_category_quick_actions">Quick Actions</string>
+    <string name="menu_category_tools">Tools &amp; Diagnostics</string>
+    <string name="menu_category_community">Community</string>
+    <string name="menu_manage_instance">Instance Tools</string>
+    <string name="menu_manage_instance_desc">Manage Mods &amp; Tools</string>
+    <string name="menu_button_settings">Settings</string>
+    <string name="menu_button_search_mods">Get Mods</string>
+
     <string name="autoram_info_msg">Memory set to %d MB</string>
     <string name="mcl_setting_check_libraries">Check libraries after downloading</string>
     <string name="mcl_setting_check_libraries_subtitle">This option forces the launcher to check the library hash if it\'s available. Prevents broken downloads.</string>

@@ -13,6 +13,7 @@ import net.kdt.pojavlaunch.modloaders.modpacks.models.ModItem;
 import net.kdt.pojavlaunch.modloaders.modpacks.models.SearchFilters;
 import net.kdt.pojavlaunch.modloaders.modpacks.models.SearchResult;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -68,4 +69,46 @@ public interface ModpackApi {
      * @param selectedVersion The selected version
      */
     ModLoader installModpack(ModDetail modDetail, int selectedVersion) throws IOException;
+
+    /**
+     * Handle single mod installation on a separated thread
+     */
+    default void handleModInstallation(Context context, ModDetail modDetail, int selectedVersion) {
+        ProgressLayout.setProgress(ProgressLayout.INSTALL_MODPACK, 0, R.string.global_waiting);
+        PojavApplication.sExecutorService.execute(() -> {
+            try {
+                installMod(modDetail, selectedVersion);
+            }catch (IOException e) {
+                Tools.showErrorRemote(context, R.string.modpack_install_download_failed, e);
+            }
+        });
+    }
+
+    /**
+     * Default implementation to directly stream a .jar into the active instance's mods folder
+     */
+    default void installMod(ModDetail modDetail, int selectedVersion) throws IOException {
+        String versionUrl = modDetail.versionUrls[selectedVersion];
+        
+        net.kdt.pojavlaunch.instances.Instance instance = net.kdt.pojavlaunch.instances.Instances.loadSelectedInstance();
+        if(instance == null) throw new IOException("No instance selected");
+        
+        File modsDir = new File(instance.getGameDirectory(), "mods");
+        if(!modsDir.exists()) modsDir.mkdirs();
+        
+        String fileName = net.kdt.pojavlaunch.utils.FileUtils.getFileName(versionUrl);
+        if(fileName == null || fileName.isEmpty()) {
+             fileName = modDetail.title.replaceAll("[^a-zA-Z0-9.-]", "_") + "-" + modDetail.versionNames[selectedVersion] + ".jar";
+        }
+        fileName = java.net.URLDecoder.decode(fileName, "UTF-8");
+        
+        File modFile = new File(modsDir, fileName);
+        
+        byte[] downloadBuffer = new byte[8192];
+        net.kdt.pojavlaunch.utils.DownloadUtils.downloadFileMonitored(versionUrl, modFile, downloadBuffer,
+                new net.kdt.pojavlaunch.progresskeeper.DownloaderProgressWrapper(R.string.modpack_download_downloading_metadata,
+                        ProgressLayout.INSTALL_MODPACK));
+                        
+        ProgressLayout.clearProgress(ProgressLayout.INSTALL_MODPACK);
+    }
 }
